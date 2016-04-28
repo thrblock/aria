@@ -1,7 +1,6 @@
 package com.thrblock.aria.music;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 
 import javax.sound.sampled.AudioFormat;
@@ -26,17 +25,20 @@ import com.thrblock.aria.decoder.SPIDecoder;
  * @author Administrator
  */
 @Component
-@Lazy(true)
+@Lazy(true)//Lazy 当系统不需要音频需求时，不会创建线程实例
 public class MusicPlayer implements Runnable {
     @Autowired private SPIDecoder decoder;
     
     private static final int SENCITIVE = 10;
-    private static final int LINE_CACHE_LENGTH = 16 * 1024; //512 KB Line Cache
+    private static final int LINE_CACHE_LENGTH = 16 * 1024; //16 KB Line Cache
     private static final int DATA_CACHE_LENGTH = 16 * 1024; //16 KB Data Cache
     private static final Logger LOG = LoggerFactory.getLogger(MusicPlayer.class);
     
     private AudioFormat baseFormat;
     private AudioFormat decodedFormat;
+    
+    private long currentPlayed;
+    private long totalLength;
     
     private File srcFile;
     private FloatControl currentContorl;
@@ -49,18 +51,33 @@ public class MusicPlayer implements Runnable {
     private int loopTime = 0;
     
     private byte[] cache = new byte[DATA_CACHE_LENGTH];
+    private byte[] skipUse = new byte[DATA_CACHE_LENGTH];
     
-    
+    private MusicProgressListener progressListener;
     public MusicPlayer() {
         new Thread(this).start();
     }
     
-    public void initMusic(File srcFile) throws UnsupportedAudioFileException, IOException {
+    public void setProgressListener(MusicProgressListener progressListener) {
+        this.progressListener = progressListener;
+    }
+
+    public void initMusic(File srcFile) throws UnsupportedAudioFileException, IOException{
+        initMusic(srcFile,true);
+    }
+    
+    private void initMusic(File srcFile,boolean recalcLength) throws UnsupportedAudioFileException, IOException {
         this.srcFile = srcFile;
-        AudioInputStream srcInput = AudioSystem.getAudioInputStream(new FileInputStream(srcFile));
+        AudioInputStream srcInput = AudioSystem.getAudioInputStream(srcFile);
         this.baseFormat = srcInput.getFormat();
         this.decodedFormat = decoder.getDecodedAudioFormat(baseFormat);
         this.audioInput = decoder.getDecodedAudioInputStream(srcInput);
+        if(recalcLength) {
+            long ts = System.currentTimeMillis();
+            totalLength = lengthDetect(srcFile);
+            LOG.info("length detect:" + totalLength + ",time use:" + (System.currentTimeMillis() - ts));
+            LOG.info("Format decoded:" + decodedFormat);
+        }
     }
     
     /**
@@ -91,12 +108,14 @@ public class MusicPlayer implements Runnable {
     public void stop() {
         playFlag = false;
         pauseFlag = false;
+        loopTime = 0;
     }
     
     public void destory() {
         runFlag = false;
         playFlag = false;
         pauseFlag = false;
+        loopTime = 0;
     }
     
     public void setVolume(float volume) {
@@ -129,6 +148,14 @@ public class MusicPlayer implements Runnable {
         }
     }
     
+    public long getCurrentPlayed() {
+    	return currentPlayed;
+    }
+    
+    public long getTotalLength() {
+    	return totalLength;
+    }
+    
     @Override
     public void run() {
         Thread.currentThread().setName("Aria Music");
@@ -138,10 +165,7 @@ public class MusicPlayer implements Runnable {
             }
             try(SourceDataLine line = readyLineByFormat()) {//generate data line
                 currentContorl = (FloatControl)line.getControl(FloatControl.Type.MASTER_GAIN);
-                while(playFlag) {
-                    playLine(line);
-                    playFlag = false;
-                }
+                playLine(line);
             } catch (LineUnavailableException | IOException e) {
                 LOG.info("Exception in line operation:" + e);
             }
@@ -149,10 +173,10 @@ public class MusicPlayer implements Runnable {
             if(loopTime > 0) {
                 loopTime --;
                 reinit();
-                playFlag = true;
             } else if(loopTime == -1) {
                 reinit();
-                playFlag = true;
+            } else {
+            	playFlag = false;
             }
         }
     }
@@ -167,19 +191,25 @@ public class MusicPlayer implements Runnable {
     
     private void reinit() {
         try {
-            initMusic(srcFile);
+            initMusic(srcFile,false);
         } catch (UnsupportedAudioFileException | IOException e) {
             LOG.info("Exception in loop reinit:" + e);
         }
     }
     
     private void playLine(SourceDataLine line) throws IOException {
-        for(int realRead = 0;realRead != -1;realRead = audioInput.read(cache, 0, cache.length)) {
+    	currentPlayed = 0;
+        for(int realRead = 0;realRead != -1 && playFlag;realRead = audioInput.read(cache, 0, cache.length)) {
+        	currentPlayed += realRead;
             while(pauseFlag) {
                 sleepQuietly(SENCITIVE);
             }
             line.write(cache, 0, realRead);
+            if(progressListener != null) {
+                progressListener.progress(currentPlayed, totalLength);
+            }
         }
+        playFlag = false;
     }
     
     private void streamCloseQuietly() {
@@ -197,5 +227,28 @@ public class MusicPlayer implements Runnable {
             Thread.currentThread().interrupt();
             LOG.info("InterruptedException:" + e);
         }
+    }
+    
+    private long lengthDetect(File srcFile) throws UnsupportedAudioFileException, IOException {
+        AudioInputStream audioInputStream = AudioSystem.getAudioInputStream(srcFile);
+        AudioFormat format = audioInputStream.getFormat();
+        
+        AudioFormat decodedFormat = decoder.getDecodedAudioFormat(format);
+        AudioInputStream decodedStream = decoder.getDecodedAudioInputStream(audioInputStream);
+        
+        long frames = decodedStream.getFrameLength();
+        long result = frames * decodedFormat.getFrameSize();
+        
+        if(result <= 0) {
+            result = 0;
+            long realSkip = 0;
+            do{
+                realSkip = decodedStream.read(skipUse);//使用skip得不到结果也是醉了
+                result += realSkip;
+            }while(realSkip != -1);
+        }
+        audioInputStream.close();
+        
+        return result;
     }
 }
