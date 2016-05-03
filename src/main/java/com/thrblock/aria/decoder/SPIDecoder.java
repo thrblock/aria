@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component;
  * @author Administrator
  */
 @Component
-public class SPIDecoder {
+public class SPIDecoder implements IDecoder {
     public AudioInputStream getDecodedAudioInputStream(AudioInputStream audioInputStream) {
         AudioFormat baseFormat = audioInputStream.getFormat();
         AudioFormat decodedFormat = getDecodedAudioFormat(baseFormat);

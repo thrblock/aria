@@ -2,7 +2,10 @@ package com.thrblock.aria.music;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
+import javax.annotation.PreDestroy;
 import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.AudioSystem;
@@ -18,7 +21,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 
-import com.thrblock.aria.decoder.SPIDecoder;
+import com.thrblock.aria.decoder.IDecoder;
 /**
  * 音乐类<br />
  * 音乐数据不会全部装入内存，每次读入一部分并播放。<br />
@@ -27,45 +30,135 @@ import com.thrblock.aria.decoder.SPIDecoder;
 @Component
 @Lazy(true)//Lazy 当系统不需要音频需求时，不会创建线程实例
 public class MusicPlayer implements Runnable {
-    @Autowired private SPIDecoder decoder;
+    /**
+     * SPI 解码器
+     */
+    @Autowired private IDecoder decoder;
     
+    /**
+     * 敏感性参数，防止CPU被循环占满
+     */
     private static final int SENCITIVE = 10;
+    /**
+     * 底层播放缓冲区设置
+     */
     private static final int LINE_CACHE_LENGTH = 16 * 1024; //16 KB Line Cache
+    /**
+     * 音频流缓冲区设置
+     */
     private static final int DATA_CACHE_LENGTH = 16 * 1024; //16 KB Data Cache
+    /**
+     * 日志
+     */
     private static final Logger LOG = LoggerFactory.getLogger(MusicPlayer.class);
     
+    /**
+     * 当前基础格式 初始化前为空
+     */
     private AudioFormat baseFormat;
+    /**
+     * 当前解码格式 初始化前可能为空
+     */
     private AudioFormat decodedFormat;
     
+    /**
+     * 当前播放的解码字节数，默认为0
+     */
     private long currentPlayed;
+    /**
+     * 当前音乐的解码字节总数，初始化前为0
+     */
     private long totalLength;
     
+    /**
+     * 当前的音频文件类
+     */
     private File srcFile;
+    /**
+     * 当前的音量控制面板，初始化前可能为空
+     */
     private FloatControl currentContorl;
+    /**
+     * 当前的音频输入流 初始化前可能为空
+     */
     private AudioInputStream audioInput;
     
+    /**
+     * 播放标记，标志着音频是否处于播放状态（包括暂停态）
+     */
     private boolean playFlag = false;
+    /**
+     * 暂停标记，标志着音频是否处于暂停状态
+     */
     private boolean pauseFlag = false;
+    /**
+     * 运行状态，标志着模块该模块是否处于运行
+     */
     private boolean runFlag = true;
     
+    /**
+     * 剩余循环次数，默认为0
+     */
     private int loopTime = 0;
     
+    /**
+     * 音频流缓冲区
+     */
     private byte[] cache = new byte[DATA_CACHE_LENGTH];
+    /**
+     * 解码字节预估缓冲区
+     */
     private byte[] skipUse = new byte[DATA_CACHE_LENGTH];
     
+    /**
+     * 命令队列
+     */
+    private Queue<MusicCmd> cmdQueue = new ConcurrentLinkedQueue<>();
+    
+    /**
+     * 进度监听器
+     */
     private MusicProgressListener progressListener;
-    public MusicPlayer() {
+    
+    /**
+     * 仅供Spring IOC容器 使用
+     */
+    private MusicPlayer() {
         new Thread(this).start();
     }
     
+    /**
+     * 构造一个播放器 使用指定的解码器实例
+     * @param decoder 解码器实例
+     */
+    public MusicPlayer(IDecoder decoder) {
+        this();
+        this.decoder = decoder;
+    }
+    
+    /**
+     * 设定进度监听器
+     * @param progressListener 进度监听器，可由lambda构造
+     */
     public void setProgressListener(MusicProgressListener progressListener) {
         this.progressListener = progressListener;
     }
 
-    public void initMusic(File srcFile) throws UnsupportedAudioFileException, IOException{
-        initMusic(srcFile,true);
+    /**
+     * 初始化一个音频文件
+     * @param srcFile 音频文件
+     */
+    public void initMusic(File srcFile) {
+        cmdQueue.offer(new MusicCmd(MusicCmd.TP_INIT,srcFile));
     }
     
+    /**
+     * 初始化一个音频文件
+     * @param srcFile 音频文件
+     * @param recalcLength 重计算 长度
+     * @throws UnsupportedAudioFileException 解码器不支持此格式时抛出
+     * @throws IOException IO错误时抛出
+     */
     private void initMusic(File srcFile,boolean recalcLength) throws UnsupportedAudioFileException, IOException {
         this.srcFile = srcFile;
         AudioInputStream srcInput = AudioSystem.getAudioInputStream(srcFile);
@@ -81,49 +174,67 @@ public class MusicPlayer implements Runnable {
     }
     
     /**
-     * 设置循环次数，循环次数为实际播放次数 + 1
+     * 播放并设置循环次数，循环次数为实际播放次数 + 1
      * @param loopTime 循环次数，-1为永远循环 
      */
     public void play(int loopTime) {
-        if(runFlag) {
-            this.loopTime = loopTime;
-            playFlag = true;
-            pauseFlag = false;
-        }
+        cmdQueue.offer(new MusicCmd(MusicCmd.TP_PLAY_LOOP,loopTime));
     }
     
     
+    /**
+     * 播放一次
+     */
     public void play() {
-        play(0);
+        cmdQueue.offer(new MusicCmd(MusicCmd.TP_PLAY));
     }
 
+    /**
+     * 暂停
+     */
     public void pause() {
-        pauseFlag = true;
+        cmdQueue.offer(new MusicCmd(MusicCmd.TP_PAUSE));
     }
     
+    /**
+     * 恢复
+     */
     public void remuse() {
-        pauseFlag = false;
+        cmdQueue.offer(new MusicCmd(MusicCmd.TP_REMUSE));
     }
     
+    /**
+     * 停止
+     */
     public void stop() {
-        playFlag = false;
-        pauseFlag = false;
-        loopTime = 0;
+        cmdQueue.offer(new MusicCmd(MusicCmd.TP_STOP));
     }
     
-    public void destory() {
-        runFlag = false;
-        playFlag = false;
-        pauseFlag = false;
-        loopTime = 0;
+    /**
+     * 销毁 Spirng IOC控制时自动进行
+     */
+    @PreDestroy public void destory() {
+        cmdQueue.offer(new MusicCmd(MusicCmd.TP_DESTORY));
     }
     
+    /**
+     * 设置音量，音量范围可参阅相关API获得
+     * @param volume 音量
+     * @see #getMinVolume() 获得音量最小值
+     * @see #getMaxVolume() 获得音量最大值
+     */
     public void setVolume(float volume) {
         if(currentContorl != null) {
             currentContorl.setValue(volume);
         }
     }
     
+    /**
+     * 获得当前音量，范围参阅相关API
+     * @see #getMinVolume() 获得音量最小值
+     * @see #getMaxVolume() 获得音量最大值
+     * @return
+     */
     public float getVolume() {
         if(currentContorl != null) {
             return currentContorl.getValue();
@@ -132,6 +243,12 @@ public class MusicPlayer implements Runnable {
         }
     }
     
+    /**
+     * 获得当前音量的最大值
+     * @return 当前音量最大值
+     * 
+     * @see #setVolume(float) 设置音量
+     */
     public float getMaxVolume() {
         if(currentContorl != null) {
             return currentContorl.getMaximum();
@@ -139,7 +256,12 @@ public class MusicPlayer implements Runnable {
             return 0;
         }
     }
-    
+    /**
+     * 获得当前音量的最小值
+     * @return 当前音量最小值
+     * 
+     * @see #setVolume(float) 设置音量
+     */
     public float getMinVolume() {
         if(currentContorl != null) {
             return currentContorl.getMinimum();
@@ -148,12 +270,20 @@ public class MusicPlayer implements Runnable {
         }
     }
     
+    /**
+     * 获得当前解码字节播放数
+     * @return 解码字节播放数
+     */
     public long getCurrentPlayed() {
-    	return currentPlayed;
+        return currentPlayed;
     }
     
+    /**
+     * 获得当前解码字节总数
+     * @return 解码字节总数
+     */
     public long getTotalLength() {
-    	return totalLength;
+        return totalLength;
     }
     
     @Override
@@ -161,6 +291,7 @@ public class MusicPlayer implements Runnable {
         Thread.currentThread().setName("Aria Music");
         while(runFlag) {
             while(!playFlag) { //等待播放信号
+                processCmdStep();
                 sleepQuietly(SENCITIVE);
             }
             try(SourceDataLine line = readyLineByFormat()) {//generate data line
@@ -176,7 +307,7 @@ public class MusicPlayer implements Runnable {
             } else if(loopTime == -1) {
                 reinit();
             } else {
-            	playFlag = false;
+                playFlag = false;
             }
         }
     }
@@ -198,18 +329,20 @@ public class MusicPlayer implements Runnable {
     }
     
     private void playLine(SourceDataLine line) throws IOException {
-    	currentPlayed = 0;
+        currentPlayed = 0;
         for(int realRead = 0;realRead != -1 && playFlag;realRead = audioInput.read(cache, 0, cache.length)) {
-        	currentPlayed += realRead;
+            currentPlayed += realRead;
             while(pauseFlag) {
+                processCmdStep();
                 sleepQuietly(SENCITIVE);
             }
+            processCmdStep();
             line.write(cache, 0, realRead);
             if(progressListener != null) {
                 progressListener.progress(currentPlayed, totalLength);
             }
         }
-        playFlag = false;
+        line.drain();//一定程度上避免切换时的爆音产生
     }
     
     private void streamCloseQuietly() {
@@ -243,12 +376,72 @@ public class MusicPlayer implements Runnable {
             result = 0;
             long realSkip = 0;
             do{
-                realSkip = decodedStream.read(skipUse);//使用skip得不到结果也是醉了
                 result += realSkip;
+                realSkip = decodedStream.read(skipUse);//使用skip得不到结果也是醉了
             }while(realSkip != -1);
         }
         audioInputStream.close();
         
         return result;
+    }
+    
+    private void processCmdStep() {
+        if(!cmdQueue.isEmpty()) {
+            MusicCmd cmd = cmdQueue.poll();
+            if(runFlag) {
+                process(cmd);
+            }
+        }
+    }
+    
+    private void process(MusicCmd cmd) {
+        switch(cmd.getType()) {
+            case MusicCmd.TP_INIT:
+                try {
+                    if(!playFlag){
+                        initMusic((File)cmd.getData(),true);
+                    }
+                } catch (UnsupportedAudioFileException | IOException e) {
+                    LOG.info("Exception in init:" + e);
+                }
+            break;
+            case MusicCmd.TP_DESTORY:
+                runFlag = false;
+                playFlag = false;
+                pauseFlag = false;
+                loopTime = 0;
+            break;
+            case MusicCmd.TP_PLAY:
+                if(!playFlag) {
+                    playFlag = true;
+                    pauseFlag = false;
+                    loopTime = 0;
+                }
+            break;
+            case MusicCmd.TP_PLAY_LOOP:
+                if(!playFlag) {
+                    playFlag = true;
+                    pauseFlag = false;
+                    loopTime = (Integer)cmd.getData();
+                }
+            break;
+            case MusicCmd.TP_PAUSE:
+                if(playFlag && !pauseFlag) {
+                    pauseFlag = true;
+                }
+            break;
+            case MusicCmd.TP_REMUSE:
+                if(playFlag && pauseFlag) {
+                    pauseFlag = false;
+                }
+            break;
+            case MusicCmd.TP_STOP:
+                if(playFlag) {
+                    playFlag = false;
+                    pauseFlag = false;
+                    loopTime = 0;
+                }
+            break;
+        }
     }
 }
