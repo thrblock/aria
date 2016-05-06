@@ -23,7 +23,7 @@ import org.springframework.stereotype.Component;
 
 import com.thrblock.aria.decoder.IDecoder;
 /**
- * 音乐类<br />
+ * 音乐播放器类<br />
  * 音乐数据不会全部装入内存，每次读入一部分并播放。<br />
  * @author Administrator
  */
@@ -42,7 +42,7 @@ public class MusicPlayer implements Runnable {
     /**
      * 底层播放缓冲区设置
      */
-    private static final int LINE_CACHE_LENGTH = 16 * 1024; //16 KB Line Cache
+    private static final int LINE_CACHE_LENGTH = 512 * 1024; //512 KB Line Cache
     /**
      * 音频流缓冲区设置
      */
