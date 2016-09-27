@@ -20,7 +20,7 @@ public class Sound {
         pool.execute(() -> {
             int offset = 0;
             while(offset < decodedSrc.length) {
-                offset += refLine.write(decodedSrc, offset, CACHE_LENGTH);
+                offset += refLine.write(decodedSrc, offset, offset + CACHE_LENGTH > decodedSrc.length?decodedSrc.length - offset:CACHE_LENGTH);
             }
         });
     }
@@ -30,7 +30,7 @@ public class Sound {
             for(int i = 0;i < times;i++) {
                 int offset = 0;
                 while(offset < decodedSrc.length) {
-                    offset += refLine.write(decodedSrc, offset, CACHE_LENGTH);
+                    offset += refLine.write(decodedSrc, offset, offset + CACHE_LENGTH > decodedSrc.length?decodedSrc.length - offset:CACHE_LENGTH);
                 }
             }
         });
@@ -41,9 +41,14 @@ public class Sound {
             while(booleanSupplier.getAsBoolean()) {
                 int offset = 0;
                 while(offset < decodedSrc.length) {
-                    offset += refLine.write(decodedSrc, offset, CACHE_LENGTH);
+                    offset += refLine.write(decodedSrc, offset, offset + CACHE_LENGTH > decodedSrc.length?decodedSrc.length - offset:CACHE_LENGTH);
                 }
             }
         });
+    }
+    
+    protected void destory() {
+        refLine.drain();
+        refLine.close();
     }
 }

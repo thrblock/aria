@@ -19,7 +19,7 @@ public class SPIDecoder implements IDecoder {
     }
     
     public AudioFormat getDecodedAudioFormat(AudioFormat baseFormat) {
-        AudioFormat decodedFormat = new AudioFormat(
+        return new AudioFormat(
                 AudioFormat.Encoding.PCM_SIGNED,//Encoding
                 baseFormat.getSampleRate(),     //SampleRate
                 16,                             //SampleSize
@@ -27,6 +27,5 @@ public class SPIDecoder implements IDecoder {
                 baseFormat.getChannels() * 2,   //FrameSize
                 baseFormat.getSampleRate(),     //FrameRate
                 false);
-        return decodedFormat;
     }
 }
