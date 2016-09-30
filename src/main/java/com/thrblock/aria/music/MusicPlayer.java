@@ -366,11 +366,11 @@ public class MusicPlayer implements Runnable {
         AudioInputStream audioInputStream = AudioSystem.getAudioInputStream(srcFile);
         AudioFormat format = audioInputStream.getFormat();
         
-        AudioFormat decodedFormat = decoder.getDecodedAudioFormat(format);
+        AudioFormat dFormat = decoder.getDecodedAudioFormat(format);
         AudioInputStream decodedStream = decoder.getDecodedAudioInputStream(audioInputStream);
         
         long frames = decodedStream.getFrameLength();
-        long result = frames * decodedFormat.getFrameSize();
+        long result = frames * dFormat.getFrameSize();
         
         if(result <= 0) {
             result = 0;

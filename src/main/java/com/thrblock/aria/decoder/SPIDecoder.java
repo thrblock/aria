@@ -12,12 +12,14 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class SPIDecoder implements IDecoder {
+    @Override
     public AudioInputStream getDecodedAudioInputStream(AudioInputStream audioInputStream) {
         AudioFormat baseFormat = audioInputStream.getFormat();
         AudioFormat decodedFormat = getDecodedAudioFormat(baseFormat);
         return AudioSystem.getAudioInputStream(decodedFormat, audioInputStream);
     }
     
+    @Override
     public AudioFormat getDecodedAudioFormat(AudioFormat baseFormat) {
         return new AudioFormat(
                 AudioFormat.Encoding.PCM_SIGNED,//Encoding

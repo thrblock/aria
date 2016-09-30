@@ -56,7 +56,11 @@ public class SoundFactory {
      */
     @PostConstruct
     public void init() {
-        commonsPool = Executors.newCachedThreadPool();
+        commonsPool = Executors.newCachedThreadPool(r -> {
+            Thread t = new Thread(r);
+            t.setName("AriaSE-" + t.getId());
+            return t;
+        });
     }
 
     /**
