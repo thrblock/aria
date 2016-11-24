@@ -9,10 +9,10 @@ public class SoundDemo {
 	public static void main(String[] args) throws InterruptedException, AriaSoundException {
 		SoundFactory factory = new SoundFactory(new SPIDecoder());
 		factory.init();
-		Sound s1 = factory.buildSound(SoundDemo.class.getResourceAsStream("A1.mp3"));
+		Sound s1 = factory.buildSound(SoundDemo.class.getResourceAsStream("NT.mp3"));
 		for(int i = 0;i < 50;i++) {
 			s1.play();
-			Thread.sleep(300);
+			Thread.sleep(2000);
 		}
 		factory.destory();
 	}

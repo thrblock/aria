@@ -113,7 +113,7 @@ public class MusicPlayer implements Runnable {
     /**
      * 命令队列
      */
-    private Queue<MusicCmd> cmdQueue = new ConcurrentLinkedQueue<>();
+    private Queue<IMusicCmd> cmdQueue = new ConcurrentLinkedQueue<>();
     
     /**
      * 进度监听器
@@ -149,7 +149,15 @@ public class MusicPlayer implements Runnable {
      * @param srcFile 音频文件
      */
     public void initMusic(File srcFile) {
-        cmdQueue.offer(new MusicCmd(MusicCmd.TP_INIT,srcFile));
+        cmdQueue.offer(()->{
+            try {
+                if(!playFlag){
+                     initMusic(srcFile,true);
+                 }
+             } catch (UnsupportedAudioFileException | IOException e) {
+                 LOG.info("Exception in init:" + e);
+             }
+        });
     }
     
     /**
@@ -178,7 +186,13 @@ public class MusicPlayer implements Runnable {
      * @param loopTime 循环次数，-1为永远循环 
      */
     public void play(int loopTime) {
-        cmdQueue.offer(new MusicCmd(MusicCmd.TP_PLAY_LOOP,loopTime));
+        cmdQueue.offer(() -> {
+            if(!playFlag) {
+                playFlag = true;
+                pauseFlag = false;
+                this.loopTime = loopTime;
+            }
+        });
     }
     
     
@@ -186,35 +200,60 @@ public class MusicPlayer implements Runnable {
      * 播放一次
      */
     public void play() {
-        cmdQueue.offer(new MusicCmd(MusicCmd.TP_PLAY));
+        cmdQueue.offer(()->{
+            if(!playFlag) {
+                playFlag = true;
+                pauseFlag = false;
+                loopTime = 0;
+            }
+        });
     }
 
     /**
      * 暂停
      */
     public void pause() {
-        cmdQueue.offer(new MusicCmd(MusicCmd.TP_PAUSE));
+        cmdQueue.offer(()->{
+            if(playFlag && !pauseFlag) {
+                pauseFlag = true;
+            }
+        });
     }
     
     /**
      * 恢复
      */
     public void remuse() {
-        cmdQueue.offer(new MusicCmd(MusicCmd.TP_REMUSE));
+        cmdQueue.offer(()->{
+            if(playFlag && pauseFlag) {
+                pauseFlag = false;
+            }
+        });
     }
     
     /**
      * 停止
      */
     public void stop() {
-        cmdQueue.offer(new MusicCmd(MusicCmd.TP_STOP));
+        cmdQueue.offer(()->{
+            if(playFlag) {
+                playFlag = false;
+                pauseFlag = false;
+                loopTime = 0;
+            }
+        });
     }
     
     /**
      * 销毁 Spirng IOC控制时自动进行
      */
     @PreDestroy public void destory() {
-        cmdQueue.offer(new MusicCmd(MusicCmd.TP_DESTORY));
+        cmdQueue.offer(()->{
+            runFlag = false;
+            playFlag = false;
+            pauseFlag = false;
+            loopTime = 0;
+        });
     }
     
     /**
@@ -387,61 +426,10 @@ public class MusicPlayer implements Runnable {
     
     private void processCmdStep() {
         if(!cmdQueue.isEmpty()) {
-            MusicCmd cmd = cmdQueue.poll();
+            IMusicCmd cmd = cmdQueue.poll();
             if(runFlag) {
-                process(cmd);
+                cmd.exec();
             }
-        }
-    }
-    
-    private void process(MusicCmd cmd) {
-        switch(cmd.getType()) {
-            case MusicCmd.TP_INIT:
-                try {
-                    if(!playFlag){
-                        initMusic((File)cmd.getData(),true);
-                    }
-                } catch (UnsupportedAudioFileException | IOException e) {
-                    LOG.info("Exception in init:" + e);
-                }
-            break;
-            case MusicCmd.TP_DESTORY:
-                runFlag = false;
-                playFlag = false;
-                pauseFlag = false;
-                loopTime = 0;
-            break;
-            case MusicCmd.TP_PLAY:
-                if(!playFlag) {
-                    playFlag = true;
-                    pauseFlag = false;
-                    loopTime = 0;
-                }
-            break;
-            case MusicCmd.TP_PLAY_LOOP:
-                if(!playFlag) {
-                    playFlag = true;
-                    pauseFlag = false;
-                    loopTime = (Integer)cmd.getData();
-                }
-            break;
-            case MusicCmd.TP_PAUSE:
-                if(playFlag && !pauseFlag) {
-                    pauseFlag = true;
-                }
-            break;
-            case MusicCmd.TP_REMUSE:
-                if(playFlag && pauseFlag) {
-                    pauseFlag = false;
-                }
-            break;
-            case MusicCmd.TP_STOP:
-                if(playFlag) {
-                    playFlag = false;
-                    pauseFlag = false;
-                    loopTime = 0;
-                }
-            break;
         }
     }
 }
