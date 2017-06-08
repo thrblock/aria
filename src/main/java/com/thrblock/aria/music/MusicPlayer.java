@@ -329,7 +329,7 @@ public class MusicPlayer implements Runnable {
     public void run() {
         Thread.currentThread().setName("Aria Music");
         while(runFlag) {
-            while(!playFlag) { //等待播放信号
+            while(!playFlag && runFlag) { //等待播放信号
                 processCmdStep();
                 sleepQuietly(SENCITIVE);
             }
