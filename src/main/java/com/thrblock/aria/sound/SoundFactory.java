@@ -45,7 +45,8 @@ public class SoundFactory {
     }
 
     /**
-     * @param decoder 解码器
+     * @param decoder
+     *            解码器
      */
     public SoundFactory(IDecoder decoder) {
         this.decoder = decoder;
@@ -65,9 +66,12 @@ public class SoundFactory {
 
     /**
      * 构造一个音效实例
-     * @param src 原始音频数据流（不是解码流）
+     * 
+     * @param src
+     *            原始音频数据流（不是解码流）
      * @return 音效实例
-     * @throws AriaSoundException 当出现异常时抛出
+     * @throws AriaSoundException
+     *             当出现异常时抛出
      */
     public Sound buildSound(InputStream src) throws AriaSoundException {
         try (AudioInputStream ais = AudioSystem.getAudioInputStream(src)) {
@@ -86,9 +90,12 @@ public class SoundFactory {
 
     /**
      * 构造一个音效实例
-     * @param f 原始音频文件
+     * 
+     * @param f
+     *            原始音频文件
      * @return 音效实例
-     * @throws AriaSoundException 当异常时抛出
+     * @throws AriaSoundException
+     *             当异常时抛出
      */
     public Sound buildSound(File f) throws AriaSoundException {
         try {
@@ -100,7 +107,9 @@ public class SoundFactory {
 
     /**
      * 等待音效播放完全并销毁音效线程池
-     * @throws InterruptedException 当超时时抛出
+     * 
+     * @throws InterruptedException
+     *             当超时时抛出
      */
     @PreDestroy
     public void destory() throws InterruptedException {

@@ -7,10 +7,10 @@ package com.thrblock.aria.music;
  */
 @FunctionalInterface
 public interface MusicProgressListener {
-	/**
-	 * 
-	 * @param current
-	 * @param all
-	 */
-	public void progress(long current,long all);
+    /**
+     * 
+     * @param current
+     * @param all
+     */
+    public void progress(long current, long all);
 }
