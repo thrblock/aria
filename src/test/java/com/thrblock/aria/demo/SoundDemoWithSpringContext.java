@@ -17,9 +17,9 @@ public class SoundDemoWithSpringContext {
     public static void main(String[] args) throws InterruptedException, AriaSoundException {
         SoundFactory factory = context.getBean(SoundFactory.class);
         Sound s1 = factory.buildSound(SoundDemoWithSpringContext.class.getResourceAsStream("NT.mp3"));
-        for (int i = 0; i < 50; i++) {
+        for (int i = 0; i < 10; i++) {
             s1.play();
-            Thread.sleep(2000);
+            Thread.sleep(500);
         }
         factory.destory();
     }

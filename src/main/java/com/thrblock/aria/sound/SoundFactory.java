@@ -1,5 +1,6 @@
 package com.thrblock.aria.sound;
 
+import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -99,7 +100,7 @@ public class SoundFactory {
      */
     public Sound buildSound(File f) throws AriaSoundException {
         try {
-            return buildSound(new FileInputStream(f));
+            return buildSound(new BufferedInputStream(new FileInputStream(f)));
         } catch (FileNotFoundException e) {
             throw new AriaSoundException(e);
         }
