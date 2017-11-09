@@ -89,6 +89,6 @@ aria 是一个轻量级的java音频处理组件，设计用于游戏开发中�
 ### 其它事项
  * 更多使用实例可见src/test/java中的实例   
  * 请尊重并遵循开源协议规则
- * 意见及建议:badteeth@qq.com   
+ * 意见及建议:thrblock@gmail.com OR badteeth@qq.com   
  
  
