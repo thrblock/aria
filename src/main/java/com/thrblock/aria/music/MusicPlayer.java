@@ -27,7 +27,7 @@ import com.thrblock.aria.decoder.IDecoder;
  * 音乐播放器类<br />
  * 音乐数据不会全部装入内存，每次读入一部分并播放。<br />
  * 
- * @author Administrator
+ * @author thrblock
  */
 @Component
 @Lazy(true) // Lazy 当系统不需要音频需求时，不会创建线程实例

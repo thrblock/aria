@@ -27,7 +27,7 @@ import com.thrblock.aria.decoder.IDecoder;
 /**
  * 音效工厂
  * 
- * @author Administrator
+ * @author thrblock
  *
  */
 @Component

@@ -6,7 +6,7 @@ import javax.sound.sampled.AudioInputStream;
 /**
  * 解码器接口
  * 
- * @author Administrator
+ * @author thrblock
  */
 public interface IDecoder {
     /**
