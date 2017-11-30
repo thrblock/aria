@@ -25,9 +25,11 @@ import org.springframework.stereotype.Component;
 import com.thrblock.aria.decoder.IDecoder;
 
 /**
+ * the sound factory
+ * <p>
  * 音效工厂
  * 
- * @author thrblock
+ * <a href="mailto:thrblock@gmail.com">thrblock</a>
  *
  */
 @Component
@@ -46,6 +48,9 @@ public class SoundFactory {
     }
 
     /**
+     * build with the given decoder
+     * <p>
+     * 
      * @param decoder
      *            解码器
      */
@@ -54,6 +59,8 @@ public class SoundFactory {
     }
 
     /**
+     * init the factory,auto done when in spring context
+     * <p>
      * 初始化工厂 当使用spring控制时自动完成
      */
     @PostConstruct
@@ -66,13 +73,15 @@ public class SoundFactory {
     }
 
     /**
+     * build sond by src audio stream
+     * <p>
      * 构造一个音效实例
      * 
      * @param src
-     *            原始音频数据流（不是解码流）
+     *            src audio stream,eg.file input stream. 原始音频数据流（不是解码流）
      * @return 音效实例
      * @throws AriaSoundException
-     *             当出现异常时抛出
+     *             when exception 当出现异常时抛出
      */
     public Sound buildSound(InputStream src) throws AriaSoundException {
         try (AudioInputStream ais = AudioSystem.getAudioInputStream(src)) {
@@ -90,13 +99,15 @@ public class SoundFactory {
     }
 
     /**
+     * build sond by src audio file
+     * <p>
      * 构造一个音效实例
      * 
      * @param f
-     *            原始音频文件
-     * @return 音效实例
+     *            src audio file 原始音频文件
+     * @return sound instance 音效实例
      * @throws AriaSoundException
-     *             当异常时抛出
+     *             when exception 当异常时抛出
      */
     public Sound buildSound(File f) throws AriaSoundException {
         try {
@@ -107,13 +118,14 @@ public class SoundFactory {
     }
 
     /**
+     * destroy se thread pool<p>
      * 等待音效播放完全并销毁音效线程池
      * 
      * @throws InterruptedException
-     *             当超时时抛出
+     *             when interrupted 当超时时抛出
      */
     @PreDestroy
-    public void destory() throws InterruptedException {
+    public void destroy() throws InterruptedException {
         commonsPool.shutdown();
         commonsPool.awaitTermination(3, TimeUnit.SECONDS);
     }

@@ -24,107 +24,147 @@ import org.springframework.stereotype.Component;
 import com.thrblock.aria.decoder.IDecoder;
 
 /**
- * 音乐播放器类<br />
- * 音乐数据不会全部装入内存，每次读入一部分并播放。<br />
+ * The music player,which load a bit music raw data into cache and play it.
+ * <p>
+ * 音乐播放器类
+ * <p>
+ * 音乐数据不会全部装入内存，每次读入一部分并播放。
+ * <p>
  * 
- * @author thrblock
+ * <a href="mailto:thrblock@gmail.com">thrblock</a>
  */
 @Component
-@Lazy(true) // Lazy 当系统不需要音频需求时，不会创建线程实例
+@Lazy(true) // Lazy Load only if needed. 当系统不需要音频需求时，不会创建线程实例
 public class MusicPlayer implements Runnable {
     /**
+     * SPI Decoder
+     * <p>
      * SPI 解码器
      */
     @Autowired
     private IDecoder decoder;
 
     /**
+     * This prievent a empty-full loop in cpu
+     * <p>
      * 敏感性参数，防止CPU被循环占满
      */
     private static final int SENCITIVE = 10;
     /**
+     * This is the cache size for data line
+     * <p>
      * 底层播放缓冲区设置
      */
     private static final int LINE_CACHE_LENGTH = 512 * 1024; // 512 KB Line
                                                              // Cache
     /**
+     * This is the cache size for raw data
+     * <p>
      * 音频流缓冲区设置
      */
     private static final int DATA_CACHE_LENGTH = 16 * 1024; // 16 KB Data Cache
     /**
+     * This is the logger
+     * <p>
      * 日志
      */
     private static final Logger LOG = LoggerFactory.getLogger(MusicPlayer.class);
 
     /**
-     * 当前基础格式 初始化前为空
-     */
-    private AudioFormat baseFormat;
-    /**
+     * The current audio format
+     * <p>
      * 当前解码格式 初始化前可能为空
      */
     private AudioFormat decodedFormat;
 
     /**
+     * The current played(number in byte of raw data)
+     * <p>
      * 当前播放的解码字节数，默认为0
      */
     private long currentPlayed;
     /**
+     * The total length of raw data
+     * <p>
      * 当前音乐的解码字节总数，初始化前为0
      */
     private long totalLength;
 
     /**
+     * Current file
+     * <p>
      * 当前的音频文件类
      */
     private File srcFile;
     /**
+     * The control pannel,may be null
+     * <p>
      * 当前的音量控制面板，初始化前可能为空
      */
     private FloatControl currentContorl;
     /**
+     * The audio inputstream
+     * <p>
      * 当前的音频输入流 初始化前可能为空
      */
     private AudioInputStream audioInput;
 
     /**
+     * The flag to mark status as playing
+     * <p>
      * 播放标记，标志着音频是否处于播放状态（包括暂停态）
      */
     private boolean playFlag = false;
     /**
+     * The flag to mark status as pause
+     * <p>
      * 暂停标记，标志着音频是否处于暂停状态
      */
     private boolean pauseFlag = false;
     /**
+     * The flag to mark status running.
+     * <p>
      * 运行状态，标志着模块该模块是否处于运行
      */
     private boolean runFlag = true;
 
     /**
+     * loop time
+     * <p>
      * 剩余循环次数，默认为0
      */
     private int loopTime = 0;
 
     /**
+     * Line cache
+     * <p>
      * 音频流缓冲区
      */
     private byte[] cache = new byte[DATA_CACHE_LENGTH];
     /**
+     * raw data cache
+     * <p>
      * 解码字节预估缓冲区
      */
     private byte[] skipUse = new byte[DATA_CACHE_LENGTH];
 
     /**
+     * The command queue
+     * <p>
      * 命令队列
      */
     private Queue<IMusicCmd> cmdQueue = new ConcurrentLinkedQueue<>();
 
     /**
+     * The progress listener
+     * <p>
      * 进度监听器
      */
     private MusicProgressListener progressListener;
 
     /**
+     * For Spring IOC use only.
+     * <p>
      * 仅供Spring IOC容器 使用
      */
     private MusicPlayer() {
@@ -132,6 +172,8 @@ public class MusicPlayer implements Runnable {
     }
 
     /**
+     * Build a music player with the given decoder
+     * <p>
      * 构造一个播放器 使用指定的解码器实例
      * 
      * @param decoder
@@ -143,6 +185,8 @@ public class MusicPlayer implements Runnable {
     }
 
     /**
+     * set progress listener
+     * <p>
      * 设定进度监听器
      * 
      * @param progressListener
@@ -153,10 +197,12 @@ public class MusicPlayer implements Runnable {
     }
 
     /**
+     * init a music file
+     * <p>
      * 初始化一个音频文件
      * 
      * @param srcFile
-     *            音频文件
+     *            src audio file 音频文件
      */
     public void initMusic(File srcFile) {
         cmdQueue.offer(() -> {
@@ -171,21 +217,24 @@ public class MusicPlayer implements Runnable {
     }
 
     /**
-     * 初始化一个音频文件
+     * init a music file,and check it's raw data length or not,the checking will
+     * take some time and make progress listener available
+     * <p>
+     * 初始化一个音频文件,并根据需要检测解码数据长度,检测需要一定时间并将使进度监听器可用
      * 
      * @param srcFile
-     *            音频文件
+     *            audio file 音频文件
      * @param recalcLength
-     *            重计算 长度
+     *            check or not 重计算 长度
      * @throws UnsupportedAudioFileException
-     *             解码器不支持此格式时抛出
+     *             when decode not support 解码器不支持此格式时抛出
      * @throws IOException
-     *             IO错误时抛出
+     *             when a io error IO错误时抛出
      */
     private void initMusic(File srcFile, boolean recalcLength) throws UnsupportedAudioFileException, IOException {
         this.srcFile = srcFile;
         AudioInputStream srcInput = AudioSystem.getAudioInputStream(srcFile);
-        this.baseFormat = srcInput.getFormat();
+        AudioFormat baseFormat = srcInput.getFormat();
         this.decodedFormat = decoder.getDecodedAudioFormat(baseFormat);
         this.audioInput = decoder.getDecodedAudioInputStream(srcInput);
         if (recalcLength) {
@@ -197,10 +246,12 @@ public class MusicPlayer implements Runnable {
     }
 
     /**
+     * play and loop
+     * <p>
      * 播放并设置循环次数，循环次数为实际播放次数 + 1
      * 
      * @param loopTime
-     *            循环次数，-1为永远循环
+     *            loop times,-1 means forever 循环次数，-1为永远循环
      */
     public void play(int loopTime) {
         cmdQueue.offer(() -> {
@@ -213,6 +264,7 @@ public class MusicPlayer implements Runnable {
     }
 
     /**
+     * play once<p>
      * 播放一次
      */
     public void play() {
@@ -226,6 +278,7 @@ public class MusicPlayer implements Runnable {
     }
 
     /**
+     * pause<p>
      * 暂停
      */
     public void pause() {
@@ -237,6 +290,7 @@ public class MusicPlayer implements Runnable {
     }
 
     /**
+     * remuse<p>
      * 恢复
      */
     public void remuse() {
@@ -248,6 +302,7 @@ public class MusicPlayer implements Runnable {
     }
 
     /**
+     * stop<p>
      * 停止
      */
     public void stop() {
@@ -261,10 +316,11 @@ public class MusicPlayer implements Runnable {
     }
 
     /**
+     * Auto destroy when use spring<p>
      * 销毁 Spirng IOC控制时自动进行
      */
     @PreDestroy
-    public void destory() {
+    public void destroy() {
         cmdQueue.offer(() -> {
             runFlag = false;
             playFlag = false;
@@ -274,6 +330,7 @@ public class MusicPlayer implements Runnable {
     }
 
     /**
+     * set audio volume<p>
      * 设置音量，音量范围可参阅相关API获得
      * 
      * @param volume
@@ -288,11 +345,12 @@ public class MusicPlayer implements Runnable {
     }
 
     /**
+     * get current volume<p>
      * 获得当前音量，范围参阅相关API
      * 
      * @see #getMinVolume() 获得音量最小值
      * @see #getMaxVolume() 获得音量最大值
-     * @return
+     * @return 当前音量
      */
     public float getVolume() {
         if (currentContorl != null) {
@@ -303,6 +361,7 @@ public class MusicPlayer implements Runnable {
     }
 
     /**
+     * get the max volume<p>
      * 获得当前音量的最大值
      * 
      * @return 当前音量最大值
@@ -318,6 +377,7 @@ public class MusicPlayer implements Runnable {
     }
 
     /**
+     * get the min volume<p>
      * 获得当前音量的最小值
      * 
      * @return 当前音量最小值
@@ -333,6 +393,7 @@ public class MusicPlayer implements Runnable {
     }
 
     /**
+     * get current played in bytes of raw data<p>
      * 获得当前解码字节播放数
      * 
      * @return 解码字节播放数
@@ -342,6 +403,7 @@ public class MusicPlayer implements Runnable {
     }
 
     /**
+     * get current total in bytes of raw data<p>
      * 获得当前解码字节总数
      * 
      * @return 解码字节总数

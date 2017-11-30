@@ -21,6 +21,6 @@ public class SoundDemoWithSpringContext {
             s1.play();
             Thread.sleep(500);
         }
-        factory.destory();
+        factory.destroy();
     }
 }

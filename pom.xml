@@ -3,7 +3,35 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.thrblock.aria</groupId>
 	<artifactId>aria-core</artifactId>
-	<version>1.1.0-beta</version>
+	<version>1.1.0</version>
+	<packaging>jar</packaging>
+	
+	<name>aria-core</name>
+	<description>A light-weight sound system based on java sound and SPI</description>
+	<url>http://thrblock.com</url>
+	
+	<licenses>
+		<license>
+			<name>GNU Lesser General Public License version 3</name>
+			<url>https://opensource.org/licenses/lgpl-3.0.html</url>
+		</license>
+	</licenses>
+	
+	<developers>
+		<developer>
+			<name>Li Ze Pu</name>
+			<email>thrblock@gmail.com</email>
+			<organization>thrblock</organization>
+			<organizationUrl>http://thrblock.com</organizationUrl>
+		</developer>
+	</developers>
+	
+	<scm>
+		<connection>scm:git:git://github.com/thrblock/aria.git</connection>
+		<developerConnection>scm:git:ssh://github.com:thrblock/aria.git</developerConnection>
+		<url>https://github.com/thrblock/aria</url>
+	</scm>
+	
 	<build>
 		<plugins>
 			<plugin>
@@ -75,13 +103,5 @@
 			<version>2.5</version>
 			<scope>runtime</scope>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/com.jayway.awaitility/awaitility -->
-		<dependency>
-			<groupId>com.jayway.awaitility</groupId>
-			<artifactId>awaitility</artifactId>
-			<version>1.7.0</version>
-			<scope>test</scope>
-		</dependency>
-
 	</dependencies>
 </project>

@@ -14,6 +14,6 @@ public class SoundDemo {
             s1.play();
             Thread.sleep(2000);
         }
-        factory.destory();
+        factory.destroy();
     }
 }

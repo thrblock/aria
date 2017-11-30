@@ -10,18 +10,25 @@ import javax.sound.sampled.LineUnavailableException;
 import javax.sound.sampled.SourceDataLine;
 
 /**
- * Sound类代表音效实例；一个音效内容被完全的加载入内存中<br />
+ * The Sound Effect class,all the raw data was loaded into memory
+ * <p>
+ * ALL the methods there are thread-safe.
+ * <p>
+ * Sound类代表音效实例；一个音效内容被完全的加载入内存中
+ * <p>
  * 此外 Sound中的播放相关方法均并行可行并且线程安全
  * 
- * @author user
+ * <a href="mailto:thrblock@gmail.com">thrblock</a>
  *
  */
 public class Sound {
     /**
+     * raw data cache<p>
      * 播放缓冲区设置
      */
     private static final int PLAY_CACHE_LENGTH = 2 * 1024;
     /**
+     * the source data line cache<p>
      * LINE缓冲区设置
      */
     private static final int LINE_CACHE_LENGTH = 8 * 1024; // 8 KB Line Cache
@@ -36,6 +43,7 @@ public class Sound {
     }
 
     /**
+     * play once<p>
      * 播放一次音效
      */
     public void play() {
@@ -53,10 +61,11 @@ public class Sound {
     }
 
     /**
+     * play and loop<p>
      * 循环播放音效
      * 
      * @param times
-     *            播放次数
+     *            loop time 播放次数
      */
     public void loop(int times) {
         pool.execute(() -> {
@@ -75,6 +84,7 @@ public class Sound {
     }
 
     /**
+     * when finished once,get boolean from supplier and loop if true<p>
      * 指定一个布尔提供者，当返回true时重置至起始位置循环音效
      * 
      * @param booleanSupplier
@@ -85,6 +95,7 @@ public class Sound {
     }
 
     /**
+     * when finished once,get boolean from supplier and loop back the given offset if true<p>
      * 指定一个布尔提供者，当返回true时重置至reOffset位置循环音效
      * 
      * @param booleanSupplier

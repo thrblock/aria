@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
 
 /**
  * 解码器，使用SPI交由第三方解码
- * @author thrblock
+ * <a href="mailto:thrblock@gmail.com">thrblock</a>
  */
 @Component
 public class SPIDecoder implements IDecoder {

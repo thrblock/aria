@@ -8,6 +8,12 @@ import javax.sound.sampled.UnsupportedAudioFileException;
 import org.springframework.context.support.AbstractApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 
+/**
+ * A music tool used by console
+ * <p>
+ * 一个控制台下的音乐工具
+ * <a href="mailto:thrblock@gmail.com">thrblock</a>
+ */
 public class ConsoleMusic {
     private static AbstractApplicationContext context;
     static {

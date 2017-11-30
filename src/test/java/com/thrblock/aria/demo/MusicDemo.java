@@ -12,6 +12,6 @@ public class MusicDemo {
         player.play(-1);
         Thread.sleep(5000);
         player.stop();
-        player.destory();
+        player.destroy();
     }
 }
