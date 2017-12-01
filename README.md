@@ -14,21 +14,21 @@ The aim of aria is provide a light-weight and reliable solution for sound play i
 There are two main abstractions in the system.The Music and Sound.   
 ​    
  * Music   
-  The Music is defined as the only one main theme in a scene.Usually a music is long enough so we need load a bit and play for each time.   
-  The api of Music is like init,load(loop),pause,stop etc.
-  The relevant of Music is MusicPlayer class.   
+     The Music is defined as the only one main theme in a scene.Usually a music is long enough so we need load a bit and play for each time.   
+       The api of Music is like init,load(loop),pause,stop etc.
+       The relevant of Music is MusicPlayer class.   
 
  * Sound   
-  The Sound is defined as sounds that trigged by some relevant events,which means there are lot's of same or different sounds can be played at one time.   
-  Compare with music,a sound is short enough so we load them all into memory.   
-  The api of Sound is like play,loop(for many conditions).The sound playing is also optimized for concurrent environment.   
-  The relevant of Sound is SondFactory class and Sound class,all the api in Sound are thread-safe.   
+     The Sound is defined as sounds that trigged by some relevant events,which means there are lot's of same or different sounds can be played at one time.   
+       Compare with music,a sound is short enough so we load them all into memory.   
+       The api of Sound is like play,loop(for many conditions).The sound playing is also optimized for concurrent environment.   
+       The relevant of Sound is SondFactory class and Sound class,all the api in Sound are thread-safe.   
 
 ### Get the latest release   
 You need at last java 1.8 to use this system.   
 The project is hosted in maven central now.   
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.thrblock.aria/aria-core/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.thrblock.aria/aria-core/)   
-```
+```xml
 <dependency>
     <groupId>com.thrblock.aria</groupId>
     <artifactId>aria-core</artifactId>
@@ -39,16 +39,16 @@ The project is hosted in maven central now.
 ### How to use
  There are two main plans,using spring framework or not.   
  * Plan A - Using spring framework   
-    When you want to use java to develop a game,I strong recommand you using a framework to control the lifecycle of you game component like spring   
-     All we need to do is config a componet-scan,use xml for example.
-```   
+    When you want to use java to develop a game,I strong recommand you using a framework to control the lifecycle of you game components like spring   
+     All we need to do is config a componet-scan,using xml for example.
+```   xml
  <beans xmlns="...">
      <!-- aria sound components -->
      <context:component-scan base-package="com.thrblock.aria" />
  </beans>
 ```
- And then reject in you class,use @Autowired for example.   
-```   
+ And then inject in you class,using @Autowired for example.   
+```   java
  @Component
  public class YourGameComponent {
      @Autowired
@@ -69,8 +69,8 @@ The project is hosted in maven central now.
 ```
 
  * Plan B - without spring   
-    Without spring context and we need control lifecycle manuly   
-```   
+    Without spring context so we need control lifecycle manuly   
+```   java
  public class MusicDemo {
      public static void main(String[] args) throws InterruptedException {
          MusicPlayer player = new MusicPlayer(new SPIDecoder());
