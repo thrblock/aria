@@ -23,7 +23,9 @@ aria 是一个轻量级的java音频处理组件，设计用于游戏开发中�
  与音效相关的类是SoundFactory及Sound，Sound中的相关API均并行可行且并发安全   
     
 ### Install   
- 需要java1.8或以上版本支持，克隆代码到本地后，使用maven构造依赖即可   
+ 需要java1.8或以上版本支持   
+该项目已提交至中心仓库管理.   
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.thrblock.aria/aria-core/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.thrblock.aria/aria-core/)   
 ```
 <dependency>
     <groupId>com.thrblock.aria</groupId>
