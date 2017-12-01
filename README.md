@@ -4,7 +4,7 @@ Aria is a light-weight java sound system designed to be used in game develop.
 It's also contain spring support so it can be easily used in a spring application.
 
 ### The project aim
-The aim of aria is provide a light-weight and reliable solution for game dev.
+The aim of aria is provide a light-weight and reliable solution for sound play in game dev.
  * Music for common background music.   
  * Sound for sound effect.   
  * Based on the SPI decoder,the system can support wav\mp3\ogg now,and you can include many other format like FLAV easily.   
