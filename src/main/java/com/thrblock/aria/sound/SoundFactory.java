@@ -4,7 +4,6 @@ import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.concurrent.ExecutorService;
@@ -110,9 +109,9 @@ public class SoundFactory {
      *             when exception 当异常时抛出
      */
     public Sound buildSound(File f) throws AriaSoundException {
-        try {
-            return buildSound(new BufferedInputStream(new FileInputStream(f)));
-        } catch (FileNotFoundException e) {
+        try(InputStream is = new FileInputStream(f)) {
+            return buildSound(new BufferedInputStream(is));
+        } catch (IOException e) {
             throw new AriaSoundException(e);
         }
     }
